@@ -1,0 +1,78 @@
+services:
+  cam_a:
+    build: ./camera
+    networks:
+      zone_a_net:
+  cam_b:
+    build: ./camera
+    networks:
+      zone_a_net:
+  cam_c: 
+    build: ./camera
+    networks:
+      zone_b_net:
+  fog_a:
+    build: ./fog
+    cpus: 0.5
+    mem_limit: "256m"
+    networks:
+      zone_a_net:
+        ipv4_address: 10.10.1.10
+      backbone_net:
+        ipv4_address: 10.20.0.10
+      mgmt_net:
+        ipv4_address: 10.30.0.30
+  fog_b:
+    build: ./fog
+    cpus: 0.5
+    mem_limit: "256m"
+    networks:
+      zone_b_net:
+        ipv4_address: 10.10.2.10
+      backbone_net:
+        ipv4_address: 10.20.0.20
+      mgmt_net:
+        ipv4_address: 10.30.0.40
+  cloud_node:
+    build: ./cloud
+    networks:
+      backbone_net:
+        ipv4_address: 10.20.0.30
+      mgmt_net:
+        ipv4_address: 10.30.0.20
+  logging_node:
+    build: ./logging
+    networks: 
+      mgmt_net:
+        ipv4_address: 10.30.0.10
+networks:
+  zone_a_net:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.10.1.0/24
+          gateway: 10.10.1.1
+          ip_range: 10.10.1.128/25
+  zone_b_net:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.10.2.0/24
+          gateway: 10.10.2.1
+          ip_range: 10.10.2.128/25
+  backbone_net:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.20.0.0/24
+          gateway: 10.20.0.1
+  mgmt_net:
+    driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: 10.30.0.0/24
+          gateway: 10.30.0.1
