@@ -5,6 +5,7 @@ import threading
 import urllib.request
 
 COLLECTOR = os.environ.get("COLLECTOR_URL", "http://10.30.0.10:9000/log")
+NODE_NAME = os.environ.get("NODE_NAME", "unknown")
 _q = queue.Queue(maxsize=1000)
 
 
@@ -28,6 +29,7 @@ threading.Thread(target=_worker, daemon=True).start()
 
 
 def send_log(entry):
+    entry.setdefault("node", NODE_NAME)
     try:
         _q.put_nowait(entry)
     except queue.Full:
