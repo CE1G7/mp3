@@ -3,4 +3,5 @@ WORKDIR /app
 RUN pip install --no-cache-dir flask
 COPY app.py .
 ENV LOG_FILE=/logs/all.jsonl
+ENV ALERT_FILE=/logs/alerts.jsonl
 CMD ["python", "app.py"]

@@ -42,6 +42,8 @@ services:
         ipv4_address: 10.30.0.20
   logging_node:
     build: ./logging
+    volumes:
+      - ./logging/logs:/logs
     networks: 
       mgmt_net:
         ipv4_address: 10.30.0.10
