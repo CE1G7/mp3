@@ -1,1 +1,5 @@
 logging/logs/
+venv/
+fog/img.jpg
+cloud/img.jpg
+__pycache__/
