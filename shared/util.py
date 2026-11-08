@@ -18,28 +18,26 @@ def process_image(image: Image.Image):
     for y in range(0, image.height, PART_HEIGHT):
         box = (0, y, image.width, min(y + PART_HEIGHT, image.height))
         output.paste(process_part(image.crop(box)), (0, y))
-    output.save("img.jpg") # testttttttingh
     return output
 
 
 def process_image_offload(image_bytes: io.BytesIO, offload_url: str, headers: dict, offload_split: float = 0.5):
     image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
     cut_y = min(round(image.height/PART_HEIGHT*offload_split)*PART_HEIGHT, image.height)
-    box = (0, 0, image.width, cut_y-1)
+    box = (0, 0, image.width, cut_y)
     image_cut_local = image.crop(box)
     box = (0, cut_y, image.width, image.height)
     image_cut_cloud = image.crop(box)
     try:
         headers["image_width"] = str(image.width)
-        headers["image_height"] = str(cut_y)
+        headers["image_height"] = str(image.height - cut_y)
         r = requests.post(offload_url, data=image_cut_cloud.tobytes(), headers=headers)
         r.raise_for_status()
-        processed_image_cloud = Image.frombytes("RGB", (image.width, cut_y), r.content)
+        processed_image_cloud = Image.frombytes("RGB", (image.width, image.height - cut_y), r.content)
         processed_image_local = process_image(image_cut_local)
         image_merged = Image.new("RGB", image.size)
         image_merged.paste(processed_image_local, (0, 0))
         image_merged.paste(processed_image_cloud, (0, cut_y))
-        image_merged.save("img.jpg")
         image_hash = hashlib.sha256(image_merged.tobytes()).hexdigest()
         return image_hash
     except Exception as e:
