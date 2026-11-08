@@ -7,7 +7,6 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from shared.util import process_image, log
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--ip", type=str, default="127.0.0.1")
 parser.add_argument("--log_ip", type=str, default="127.0.0.1")
 parser.add_argument("--id", type=str, default="cloud_a")
 args = parser.parse_args()

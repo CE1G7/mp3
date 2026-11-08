@@ -8,12 +8,12 @@ from shared.util import process_image_local
 parser = argparse.ArgumentParser()
 parser.add_argument("--dos", action="store_true")
 parser.add_argument("--fog_ip", type=str, default="127.0.0.1")
-parser.add_argument("--name", type=str, default="cam_x")
+parser.add_argument("--id", type=str, default="cam_x")
 args = parser.parse_args()
 
 headers = {
     "Content-Type": "image/jpeg",
-    "id": args.name
+    "id": args.id
 }
 
 if __name__ == "__main__":
@@ -47,8 +47,8 @@ if __name__ == "__main__":
                 print(f"Request failed: {e}")
         else:
             try:
-                r = requests.post(f"http://{args.fog_ip}:8000/image", data=pic, headers=headers, timeout=0.1)
-            except requests.exceptions.Timeout:
+                r = requests.post(f"http://{args.fog_ip}:8000/image", data=pic, headers=headers, timeout=0.2)
+            except:# requests.exceptions.Timeout:
                 pass
 
         print(f"CPU load: {psutil.cpu_percent()/100:.2f}")

@@ -1,10 +1,17 @@
-FROM python:3.12-slim
+FROM python:3.13-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
+
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        curl iproute2 iputils-ping \
+    libjpeg62-turbo-dev zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
-WORKDIR /srv
-RUN echo "hello from fog" > index.html
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
-ENTRYPOINT ["/entrypoint.sh"]
-CMD ["python", "-m", "http.server", "8080"]
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY fog/fog.py ./fog/
+COPY shared/util.py ./shared/
+
+WORKDIR /app/fog
