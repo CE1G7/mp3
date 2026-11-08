@@ -8,5 +8,10 @@ Inside the same container run:
 
 Observe the logs.
 
-## Tas 1.5
+## Task 1.5
 Execute into either fog container and ping the cloud container. Observe the logs.
+
+## Task 2
+run ```dockerc compose up``` and observe the logs
+
+To run dos attack add --dos flag to one of the cams in the compose file.

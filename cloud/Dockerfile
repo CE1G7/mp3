@@ -1,5 +1,17 @@
-FROM python:3.12-alpine
-RUN apk add --no-cache curl
-WORKDIR /srv
-RUN echo "hello from cloud" > index.html
-CMD ["python", "-m", "http.server", "8080"]
+FROM python:3.13-slim
+
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libjpeg62-turbo-dev zlib1g-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY cloud/cloud.py ./cloud/
+COPY shared/util.py ./shared/
+
+WORKDIR /app/cloud

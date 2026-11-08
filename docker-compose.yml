@@ -1,18 +1,30 @@
 services:
   cam_a:
-    build: ./camera
+    build:
+      context: .
+      dockerfile: camera/Dockerfile
+    command: ["python", "camera.py", "--id", "cam_a", "--fog_ip", "10.10.1.10"]
     networks:
       zone_a_net:
   cam_b:
-    build: ./camera
+    build:
+      context: .
+      dockerfile: camera/Dockerfile
+    command: ["python", "camera.py", "--id", "cam_b", "--fog_ip", "10.10.1.10"]
     networks:
       zone_a_net:
   cam_c: 
-    build: ./camera
+    build:
+      context: .
+      dockerfile: camera/Dockerfile
+    command: ["python", "camera.py", "--id", "cam_c", "--fog_ip", "10.10.2.10"]
     networks:
       zone_b_net:
   fog_a:
-    build: ./fog
+    build:
+      context: .
+      dockerfile: fog/Dockerfile
+    command: ["python", "fog.py", "--id", "fog_a", "--cloud_ip", "10.20.0.30", "--log_ip", "10.30.0.10"]
     cpus: 0.5
     mem_limit: "512m"
     cap_add:
@@ -25,7 +37,10 @@ services:
       mgmt_net:
         ipv4_address: 10.30.0.30
   fog_b:
-    build: ./fog
+    build:
+      context: .
+      dockerfile: fog/Dockerfile
+    command: ["python", "fog.py", "--id", "fog_b", "--cloud_ip", "10.20.0.30", "--log_ip", "10.30.0.10"]
     cpus: 0.5
     mem_limit: "512m"
     cap_add:
@@ -38,7 +53,10 @@ services:
       mgmt_net:
         ipv4_address: 10.30.0.40
   cloud_node:
-    build: ./cloud
+    build:
+      context: .
+      dockerfile: cloud/Dockerfile
+    command: ["python", "cloud.py", "--id", "cloud", "--log_ip", "10.30.0.10"]
     networks:
       backbone_net:
         ipv4_address: 10.20.0.30
