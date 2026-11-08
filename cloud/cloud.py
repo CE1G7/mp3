@@ -1,5 +1,5 @@
 import argparse, uvicorn, time, psutil, io, sys
-from fastapi import FastAPI, Request, Response
+from fastapi import FastAPI, Request, Response, Depends
 from PIL import Image
 from pathlib import Path
 
@@ -15,11 +15,14 @@ args = parser.parse_args()
 app = FastAPI()
 
 
+async def get_body(request: Request) -> bytes:
+    return await request.body()
+
+
 @app.post("/image")
-async def image(request: Request):
+def image(request: Request, image_bytes: bytes = Depends(get_body)):
     start_time = time.perf_counter()
     headers = request.headers
-    image_bytes = await request.body()
     size_kb = len(image_bytes) / 1024
     print(f"Received {size_kb} KB")
     image = Image.frombytes("RGB", (int(headers["image_width"]), int(headers["image_height"])), image_bytes)
