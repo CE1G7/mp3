@@ -1,5 +1,5 @@
 import requests, hashlib, sys, time, io, argparse, uvicorn, psutil
-from fastapi import FastAPI, Request, Response, HTTPException
+from fastapi import FastAPI, Request, Response, HTTPException, Depends
 from PIL import Image, ImageFilter, ImageEnhance
 from pathlib import Path
 
@@ -20,10 +20,13 @@ headers = {
 app = FastAPI()
 
 
+async def get_body(request: Request) -> bytes:
+    return await request.body()
+
+
 @app.post("/image")
-async def image(request: Request):
+def image(request: Request, image_bytes: bytes = Depends(get_body)):
     start_time = time.perf_counter()
-    image_bytes = await request.body()
     size_kb = len(image_bytes) / 1024
     cpu_load = round(psutil.cpu_percent()/100, 2)
     offloaded = False
