@@ -27,8 +27,8 @@ def image(request: Request, image_bytes: bytes = Depends(get_body)):
     image = Image.frombytes("RGB", (int(headers["image_width"]), int(headers["image_height"])), image_bytes)
     cpu_load = round(psutil.cpu_percent()/100, 2)
     processed_image = process_image(image)
-    processing_time_ms = time.perf_counter() - start_time
-    log(monitor_ip = args.log_ip, node = args.id, headers = request.headers, size_kb = size_kb, cpu_load = cpu_load, offloaded = False, processing_time_ms = processing_time_ms, http_status = 200)
+    processing_time_ms = (time.perf_counter() - start_time) * 1000
+    log(monitor_ip = args.log_ip, node = args.id, client_ip = request.client.host, headers = request.headers, size_kb = size_kb, cpu_load = cpu_load, offloaded = False, processing_time_ms = processing_time_ms, http_status = 200)
     return Response(processed_image.tobytes())
 
 if __name__ == "__main__":

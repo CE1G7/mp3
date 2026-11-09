@@ -29,19 +29,20 @@ def image(request: Request, image_bytes: bytes = Depends(get_body)):
     start_time = time.perf_counter()
     size_kb = len(image_bytes) / 1024
     cpu_load = round(psutil.cpu_percent()/100, 2)
+    client_ip = request.client.host
     offloaded = False
     if cpu_load > 0.5 or size_kb > 256:
         offloaded = True
         image_hash = process_image_offload(image_bytes = image_bytes, offload_url = f"http://{args.cloud_ip}:8080/image", headers = headers, offload_split = 0.5)
     else: 
         image_hash = process_image_local(image_bytes)
-    processing_time_ms = time.perf_counter() - start_time
+    processing_time_ms = (time.perf_counter() - start_time) * 1000
     print(f"Pic hash processed: {image_hash}")
     if image_hash:
-        log(monitor_ip = args.log_ip, node = args.id, headers = request.headers, size_kb = size_kb, cpu_load = cpu_load, offloaded = offloaded, processing_time_ms = processing_time_ms, http_status = 200)
+        log(monitor_ip = args.log_ip, node = args.id, client_ip = client_ip, headers = request.headers, size_kb = size_kb, cpu_load = cpu_load, offloaded = offloaded, processing_time_ms = processing_time_ms, http_status = 200)
         return Response(content=image_hash, status_code=200)
     else:
-        log(monitor_ip = args.log_ip, node = args.id, headers = request.headers, size_kb = size_kb, cpu_load = cpu_load, offloaded = offloaded, processing_time_ms = processing_time_ms, http_status = 500)
+        log(monitor_ip = args.log_ip, node = args.id, client_ip = client_ip, headers = request.headers, size_kb = size_kb, cpu_load = cpu_load, offloaded = offloaded, processing_time_ms = processing_time_ms, http_status = 500)
         return Response(status_code=500)
 
 if __name__ == "__main__":

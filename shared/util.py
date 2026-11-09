@@ -51,20 +51,20 @@ def process_image_local(image_bytes: io.BytesIO):
     return image_hash
 
 
-def log(monitor_ip: str, node: str, headers: dict, size_kb: float, cpu_load: float, offloaded: bool, processing_time_ms: float, http_status: int):
+def log(monitor_ip: str, node: str, client_ip: str, headers: dict, size_kb: float, cpu_load: float, offloaded: bool, processing_time_ms: float, http_status: int):
     log = {
     "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
     "node": node,
     "cpu_load": round(cpu_load, 2),
-    "client_ip": headers["host"].split(":")[0],
+    "client_ip": client_ip,
     "client_id": headers["id"],
     "size_kb": round(size_kb, 2),
     "offloaded": offloaded,
     "processing_time_ms": round(processing_time_ms, 2),
-    "http_staus": http_status
+    "http_status": http_status
     }
     print(f"Request Log: {log}")
     try:
-        r = requests.post(f"http://{monitor_ip}:9000/log", json = log, timeout = 5)
+        r = requests.post(f"http://{monitor_ip}:9000/log", json = log, timeout = 0.5)
     except Exception as e:
         print(f"Logging unavailable: {e}")
