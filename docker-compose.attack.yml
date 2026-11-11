@@ -1,0 +1,51 @@
+# Attacker containers. Start with:
+#   docker compose -f docker-compose.yml -f docker-compose.attack.yml up -d
+# Botnet / rotate / spoof are behind profiles so each scenario runs alone:
+#   docker compose -f docker-compose.yml -f docker-compose.attack.yml --profile botnet up -d
+services:
+  # 5.1 / 5.2 -- single flooding camera in zone A
+  cam_dos:
+    build:
+      context: .
+      dockerfile: camera/Dockerfile
+    command: ["python", "camera.py", "--id", "cam_dos", "--fog_ip", "10.10.1.10", "--dos"]
+    networks:
+      zone_a_net:
+
+  # 5.3 -- botnet: two more flooders in zone A
+  cam_dos2:
+    build:
+      context: .
+      dockerfile: camera/Dockerfile
+    command: ["python", "camera.py", "--id", "cam_dos2", "--fog_ip", "10.10.1.10", "--dos"]
+    profiles: ["botnet"]
+    networks:
+      zone_a_net:
+  cam_dos3:
+    build:
+      context: .
+      dockerfile: camera/Dockerfile
+    command: ["python", "camera.py", "--id", "cam_dos3", "--fog_ip", "10.10.1.10", "--dos"]
+    profiles: ["botnet"]
+    networks:
+      zone_a_net:
+
+  # 5.3 -- one device that keeps changing its ID
+  cam_rotate:
+    build:
+      context: .
+      dockerfile: camera/Dockerfile
+    command: ["python", "camera.py", "--id", "cam_rot", "--fog_ip", "10.10.1.10", "--dos", "--id_rotate"]
+    profiles: ["rotate"]
+    networks:
+      zone_a_net:
+
+  # 5.4 -- spoofs cam_a's identity, at a LOW rate (detection by identity, not volume)
+  cam_spoof:
+    build:
+      context: .
+      dockerfile: camera/Dockerfile
+    command: ["python", "camera.py", "--id", "cam_a", "--fog_ip", "10.10.1.10"]
+    profiles: ["spoof"]
+    networks:
+      zone_a_net:

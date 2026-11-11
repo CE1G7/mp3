@@ -1,4 +1,4 @@
-import requests, hashlib, sys, time, io, argparse, uvicorn, psutil, datetime
+import requests, hashlib, sys, time, io, argparse, uvicorn, psutil, datetime, os, collections
 from PIL import Image, ImageFilter, ImageEnhance
 
 PART_HEIGHT = 64 # pixel rows per part
@@ -68,3 +68,19 @@ def log(monitor_ip: str, node: str, client_ip: str, headers: dict, size_kb: floa
         r = requests.post(f"http://{monitor_ip}:9000/log", json = log, timeout = 0.5)
     except Exception as e:
         print(f"Logging unavailable: {e}")
+
+RATE_LIMIT = os.environ.get("RATE_LIMIT", "off") == "on"
+RATE_MAX = int(os.environ.get("RATE_MAX", "5"))
+RATE_WINDOW_S = float(os.environ.get("RATE_WINDOW_S", "10"))
+_hits = collections.defaultdict(collections.deque)
+
+
+def allowed(key: str):
+    if not RATE_LIMIT:
+        return True
+    now = time.time()
+    dq = _hits[key]
+    dq.append(now)
+    while dq and now - dq[0] > RATE_WINDOW_S:
+        dq.popleft()
+    return len(dq) <= RATE_MAX

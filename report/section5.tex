@@ -1,0 +1,110 @@
+% Section 5 -- Attack and defend. Fill the <<...>> placeholders from
+% scripts/analyze.py output and the files in results/.
+% Needs booktabs, listings, xcolor in the preamble (already added for section 3).
+
+\section*{5. Attack and Defend}
+
+All attacks run inside the same Docker topology. Attacker containers are
+added through \texttt{docker-compose.attack.yml} and the fog rate limiter
+is switched on through \texttt{docker-compose.mitigation.yml}, so the base
+\texttt{docker-compose.yml} and the task~1/2 parameters are untouched. The
+legitimate cameras keep their normal 10~s interval throughout. Each phase
+was run for \texttt{<<DURATION>>}~s and the collector's
+\texttt{all.jsonl} was saved per phase under \texttt{results/}.
+
+\subsection*{5.1 DoS attack}
+
+The attacker reuses the camera image with its \texttt{--dos} flag: it
+drops the inter-request sleep, always sends the large image, and ignores
+the response (\texttt{timeout=0.2}). One such container, \texttt{cam\_dos},
+is placed in \texttt{zone\_a\_net} and floods \texttt{fog\_a}.
+
+Under the attack and with no mitigation, the latency of the legitimate
+cameras in zone~A rose from a baseline mean of \texttt{<<baseline mean>>}~ms
+to \texttt{<<attack mean>>}~ms (p95 \texttt{<<attack p95>>}~ms), and
+\texttt{<<n>>} legitimate requests failed. The flood saturates the
+single CPU the fog node is limited to (task~1.4), so genuine requests
+queue behind attacker requests.
+
+\subsection*{5.2 Mitigation}
+
+The mitigation is a sliding-window rate limiter in the fog node. For each
+request it checks the number of requests seen from the same source in the
+last \texttt{RATE\_WINDOW\_S} seconds, and rejects with HTTP~429 above
+\texttt{RATE\_MAX}. It is controlled by environment variables and is off
+by default.
+
+\begin{lstlisting}[caption={Rate check, applied before any processing}]
+if not allowed(client_ip):
+    log(..., http_status=429)
+    return Response(status_code=429)
+\end{lstlisting}
+
+Two design choices matter. First, the key is the source IP, not the
+\texttt{client\_id}: an attacker that rotates its ID (5.3) would slip past
+an ID-based limit, but still shares one address. Second, the check runs
+before the image is processed, so a rejected request costs the fog almost
+no CPU -- this is what frees capacity for the legitimate clients. Rejected
+requests are logged with status 429, so they can be counted from the logs.
+
+The threshold of \texttt{RATE\_MAX=5} per 10~s sits well above the
+legitimate rate: a real camera sends roughly one request every 10~s, so
+even all three together stay far below the limit and are never rejected.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrrrr}
+\toprule
+Phase & legit ok & mean ms & p95 ms & legit failed \\
+\midrule
+Normal operation        & <<...>> & <<...>> & <<...>> & <<...>> \\
+Attack, no mitigation    & <<...>> & <<...>> & <<...>> & <<...>> \\
+Attack, with mitigation  & <<...>> & <<...>> & <<...>> & <<...>> \\
+\bottomrule
+\end{tabular}
+\caption{Legitimate-client performance across the three required states
+(cameras cam\_a, cam\_b, cam\_c).}
+\end{table}
+
+With the limiter on, the attacker's requests are rejected at the door and
+the legitimate cameras return to near their baseline latency, while
+\texttt{<<n>>} attacker requests were rejected with 429.
+
+\subsection*{5.3 Botnet and identity rotation}
+
+\paragraph{Botnet.} Three flooding cameras in zone~A
+(\texttt{cam\_dos}, \texttt{cam\_dos2}, \texttt{cam\_dos3}) attack
+\texttt{fog\_a} at once. Because the limiter keys on source IP and each
+container has its own address, each attacker is limited independently and
+the mitigation still holds: legitimate latency stayed at
+\texttt{<<botnet mean>>}~ms.
+
+\paragraph{Rotating ID.} \texttt{cam\_rotate} floods while changing its
+\texttt{id} header on every request. This defeats any ID-based rule --
+including the collector's \texttt{rate\_per\_client\_id} alert, which no
+longer sees a repeated identity -- but the IP-based limiter and the
+\texttt{rate\_per\_client\_ip} alert still catch it, because the address
+does not change.
+
+\paragraph{Was zone~B affected?} The two zones are separate internal
+networks with separate fog nodes, so zone~B cameras never contend with
+the zone~A flood at the fog. They do share the cloud node over
+\texttt{backbone\_net}. Zone~B legitimate latency went from
+\texttt{<<baseline zB>>}~ms to \texttt{<<attack zB>>}~ms during the
+attack, which indicates <<whether the shared cloud caused measurable
+cross-zone impact -- state the conclusion from the numbers>>.
+
+\subsection*{5.4 ID spoofing}
+
+\texttt{cam\_spoof} joins \texttt{zone\_a\_net} and sends under the
+identity \texttt{cam\_a}, at a normal rate rather than flooding, so that
+detection cannot rely on volume. The collector's \texttt{id\_ip\_mismatch}
+rule fires the first time \texttt{cam\_a} is seen from a second address:
+
+\begin{lstlisting}[caption={Alert from \texttt{results/spoof\_alerts.jsonl}}]
+<<paste the real id_ip_mismatch line>>
+\end{lstlisting}
+
+The spoofed camera is detected even though its request rate stays within
+normal limits, because the rule compares identity against source address
+rather than counting requests.

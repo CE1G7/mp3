@@ -1,0 +1,9 @@
+# Turns the fog rate limiter on. Layer it on top:
+#   docker compose -f docker-compose.yml -f docker-compose.attack.yml -f docker-compose.mitigation.yml up -d
+services:
+  fog_a:
+    environment:
+      - RATE_LIMIT=on
+  fog_b:
+    environment:
+      - RATE_LIMIT=on

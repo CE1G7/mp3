@@ -4,7 +4,7 @@ from PIL import Image, ImageFilter, ImageEnhance
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
-from shared.util import process_image_local, process_image_offload, log
+from shared.util import process_image_local, process_image_offload, log, allowed
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--cloud_ip", type=str, default="127.0.0.1")
@@ -30,6 +30,9 @@ def image(request: Request, image_bytes: bytes = Depends(get_body)):
     size_kb = len(image_bytes) / 1024
     cpu_load = round(psutil.cpu_percent()/100, 2)
     client_ip = request.client.host
+    if not allowed(client_ip):
+        log(args.log_ip, args.id, client_ip, request.headers, size_kb, cpu_load, False, 0.0, 429)
+        return Response(status_code=429)
     offloaded = False
     if cpu_load > 0.5 or size_kb > 256:
         offloaded = True

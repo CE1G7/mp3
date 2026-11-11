@@ -7,6 +7,7 @@ from shared.util import process_image_local
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--dos", action="store_true")
+parser.add_argument("--id_rotate", action="store_true")
 parser.add_argument("--fog_ip", type=str, default="127.0.0.1")
 parser.add_argument("--id", type=str, default="cam_x")
 args = parser.parse_args()
@@ -23,6 +24,7 @@ if __name__ == "__main__":
         bigcat = f.read()
     with open("smallcat.jpg", "rb") as f:
         smallcat = f.read()
+    n = 0
     while True:
         pic = bigcat
         if not args.dos:
@@ -30,6 +32,9 @@ if __name__ == "__main__":
             if random.randint(0,1):
                 pic = smallcat
         print(f"Sending pic of size {len(pic) / 1024:.2f} KB")
+        if args.id_rotate:
+            headers["id"] = f"{args.id}_{n}"
+            n += 1
         if not args.dos:
             try:
                 r = requests.post(f"http://{args.fog_ip}:8000/image", data=pic, headers=headers)
