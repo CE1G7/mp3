@@ -1,0 +1,22 @@
+{"ts": "2026-11-11T21:38:45.686458+00:00", "type": "alert", "rule": "rate_per_client_id", "detail": "21 requests in 10s", "node": "fog_a", "client_id": "cam_dos", "client_ip": "10.10.1.129"}
+{"ts": "2026-11-11T21:38:45.688708+00:00", "type": "alert", "rule": "rate_per_client_ip", "detail": "21 requests in 10s", "node": "fog_a", "client_id": "cam_dos", "client_ip": "10.10.1.129"}
+{"ts": "2026-11-11T21:38:45.712744+00:00", "type": "alert", "rule": "rate_per_client_id", "detail": "21 requests in 10s", "node": "fog_a", "client_id": "cam_dos3", "client_ip": "10.10.1.130"}
+{"ts": "2026-11-11T21:38:45.714726+00:00", "type": "alert", "rule": "rate_per_client_ip", "detail": "21 requests in 10s", "node": "fog_a", "client_id": "cam_dos3", "client_ip": "10.10.1.130"}
+{"ts": "2026-11-11T21:38:45.819974+00:00", "type": "alert", "rule": "rate_per_client_id", "detail": "21 requests in 10s", "node": "fog_a", "client_id": "cam_dos2", "client_ip": "10.10.1.132"}
+{"ts": "2026-11-11T21:38:45.822270+00:00", "type": "alert", "rule": "rate_per_client_ip", "detail": "21 requests in 10s", "node": "fog_a", "client_id": "cam_dos2", "client_ip": "10.10.1.132"}
+{"ts": "2026-11-11T21:38:55.696147+00:00", "type": "alert", "rule": "rate_per_client_id", "detail": "426 requests in 10s", "node": "fog_a", "client_id": "cam_dos", "client_ip": "10.10.1.129"}
+{"ts": "2026-11-11T21:38:55.698580+00:00", "type": "alert", "rule": "rate_per_client_ip", "detail": "426 requests in 10s", "node": "fog_a", "client_id": "cam_dos", "client_ip": "10.10.1.129"}
+{"ts": "2026-11-11T21:38:55.728316+00:00", "type": "alert", "rule": "rate_per_client_id", "detail": "429 requests in 10s", "node": "fog_a", "client_id": "cam_dos3", "client_ip": "10.10.1.130"}
+{"ts": "2026-11-11T21:38:55.731152+00:00", "type": "alert", "rule": "rate_per_client_ip", "detail": "429 requests in 10s", "node": "fog_a", "client_id": "cam_dos3", "client_ip": "10.10.1.130"}
+{"ts": "2026-11-11T21:38:55.837217+00:00", "type": "alert", "rule": "rate_per_client_id", "detail": "434 requests in 10s", "node": "fog_a", "client_id": "cam_dos2", "client_ip": "10.10.1.132"}
+{"ts": "2026-11-11T21:38:55.840184+00:00", "type": "alert", "rule": "rate_per_client_ip", "detail": "434 requests in 10s", "node": "fog_a", "client_id": "cam_dos2", "client_ip": "10.10.1.132"}
+{"ts": "2026-11-11T21:40:28.881144+00:00", "type": "alert", "rule": "rate_per_client_id", "detail": "21 requests in 10s", "node": "fog_a", "client_id": "cam_dos2", "client_ip": "10.10.1.132"}
+{"ts": "2026-11-11T21:40:28.904188+00:00", "type": "alert", "rule": "rate_per_client_ip", "detail": "21 requests in 10s", "node": "fog_a", "client_id": "cam_dos2", "client_ip": "10.10.1.132"}
+{"ts": "2026-11-11T21:40:28.921728+00:00", "type": "alert", "rule": "rate_per_client_ip", "detail": "21 requests in 10s", "node": "fog_a", "client_id": "cam_dos", "client_ip": "10.10.1.129"}
+
+{"ts": "2026-11-11T21:40:38.911589+00:00", "type": "alert", "rule": "rate_per_client_id", "detail": "185 requests in 10s", "node": "fog_a", "client_id": "cam_dos", "client_ip": "10.10.1.129"}
+
+{"ts": "2026-11-11T21:40:38.914764+00:00", "type": "alert", "rule": "rate_per_client_ip", "detail": "185 requests in 10s", "node": "fog_a", "client_id": "cam_dos", "client_ip": "10.10.1.129"}
+
+{"ts": "2026-11-11T21:41:17.376791+00:00", "type": "alert", "rule": "rate_per_client_ip", "detail": "67 requests in 10s", "node": "fog_a", "client_id": "cam_dos", "client_ip": "10.10.1.129"}
+

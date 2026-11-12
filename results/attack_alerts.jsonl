@@ -1,0 +1,2 @@
+{"ts": "2026-11-11T21:34:08.449787+00:00", "type": "alert", "rule": "rate_per_client_id", "detail": "21 requests in 10s", "node": "cloud", "client_id": "fog_a", "client_ip": "10.20.0.10"}
+{"ts": "2026-11-11T21:34:08.452468+00:00", "type": "alert", "rule": "rate_per_client_ip", "detail": "21 requests in 10s", "node": "cloud", "client_id": "fog_a", "client_ip": "10.20.0.10"}

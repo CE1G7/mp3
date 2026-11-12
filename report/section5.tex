@@ -1,38 +1,41 @@
-% Section 5 -- Attack and defend. Fill the <<...>> placeholders from
-% scripts/analyze.py output and the files in results/.
-% Needs booktabs, listings, xcolor in the preamble (already added for section 3).
+% Section 5 -- Attack and defend. Real data from the run of 2026-11-11,
+% DURATION=120 s per phase. Needs booktabs, listings, xcolor (already in preamble).
 
 \section*{5. Attack and Defend}
 
 All attacks run inside the same Docker topology. Attacker containers are
 added through \texttt{docker-compose.attack.yml} and the fog rate limiter
-is switched on through \texttt{docker-compose.mitigation.yml}, so the base
-\texttt{docker-compose.yml} and the task~1/2 parameters are untouched. The
-legitimate cameras keep their normal 10~s interval throughout. Each phase
-was run for \texttt{<<DURATION>>}~s and the collector's
-\texttt{all.jsonl} was saved per phase under \texttt{results/}.
+is enabled through \texttt{docker-compose.mitigation.yml}; the base
+\texttt{docker-compose.yml} and the task~1/2 parameters are untouched, and
+the legitimate cameras keep their 10~s interval. Each phase ran for 120~s
+and the collector's \texttt{all.jsonl} was saved per phase under
+\texttt{results/}. All runs were on a single host, which matters for the
+cross-zone results in 5.3.
 
 \subsection*{5.1 DoS attack}
 
-The attacker reuses the camera image with its \texttt{--dos} flag: it
-drops the inter-request sleep, always sends the large image, and ignores
-the response (\texttt{timeout=0.2}). One such container, \texttt{cam\_dos},
-is placed in \texttt{zone\_a\_net} and floods \texttt{fog\_a}.
+The attacker reuses the camera image with its \texttt{--dos} flag: no
+inter-request sleep, always the large image, response ignored
+(\texttt{timeout=0.2}). One such container, \texttt{cam\_dos}, is placed in
+\texttt{zone\_a\_net} and targets \texttt{fog\_a}.
 
-Under the attack and with no mitigation, the latency of the legitimate
-cameras in zone~A rose from a baseline mean of \texttt{<<baseline mean>>}~ms
-to \texttt{<<attack mean>>}~ms (p95 \texttt{<<attack p95>>}~ms), and
-\texttt{<<n>>} legitimate requests failed. The flood saturates the
-single CPU the fog node is limited to (task~1.4), so genuine requests
-queue behind attacker requests.
+The clearest effect is on legitimate throughput rather than on mean
+latency. In 120~s the three legitimate cameras completed 33 requests under
+normal operation but only 11 under attack -- a drop of roughly two thirds.
+The mean latency of the requests that \emph{did} complete is not a good
+measure here: under attack the large-image requests (which offload and are
+slow) are the ones that fail, so the survivors are mostly the fast
+small-image requests, and the surviving-request mean is misleading. We
+therefore use completed legitimate requests, not mean latency, as the
+primary measure of impact.
 
 \subsection*{5.2 Mitigation}
 
 The mitigation is a sliding-window rate limiter in the fog node. For each
-request it checks the number of requests seen from the same source in the
-last \texttt{RATE\_WINDOW\_S} seconds, and rejects with HTTP~429 above
-\texttt{RATE\_MAX}. It is controlled by environment variables and is off
-by default.
+request it counts how many requests the same source made in the last
+\texttt{RATE\_WINDOW\_S} seconds and rejects with HTTP~429 above
+\texttt{RATE\_MAX}. It is controlled by environment variables and is off by
+default.
 
 \begin{lstlisting}[caption={Rate check, applied before any processing}]
 if not allowed(client_ip):
@@ -42,69 +45,93 @@ if not allowed(client_ip):
 
 Two design choices matter. First, the key is the source IP, not the
 \texttt{client\_id}: an attacker that rotates its ID (5.3) would slip past
-an ID-based limit, but still shares one address. Second, the check runs
+an ID-based limit but still shares one address. Second, the check runs
 before the image is processed, so a rejected request costs the fog almost
-no CPU -- this is what frees capacity for the legitimate clients. Rejected
-requests are logged with status 429, so they can be counted from the logs.
+no CPU. Rejections are logged with status 429 so they can be counted.
 
-The threshold of \texttt{RATE\_MAX=5} per 10~s sits well above the
-legitimate rate: a real camera sends roughly one request every 10~s, so
-even all three together stay far below the limit and are never rejected.
+The threshold \texttt{RATE\_MAX=5} per 10~s sits well above the legitimate
+rate (about one request per camera every 10~s), and in every phase the
+number of legitimate requests rejected was zero -- the limiter never
+affected a real camera.
 
 \begin{table}[h]
 \centering
 \begin{tabular}{lrrrr}
 \toprule
-Phase & legit ok & mean ms & p95 ms & legit failed \\
+State & legit completed & mean ms & p95 ms & attacker 429s \\
 \midrule
-Normal operation        & <<...>> & <<...>> & <<...>> & <<...>> \\
-Attack, no mitigation    & <<...>> & <<...>> & <<...>> & <<...>> \\
-Attack, with mitigation  & <<...>> & <<...>> & <<...>> & <<...>> \\
+Normal operation       & 33 & 365.6 & 806.9 & 0 \\
+Attack, no mitigation   & 11 & 264.9 & 901.8 & 0 \\
+Attack, with mitigation & 16 & 511.0 & 1105.6 & 8133 \\
 \bottomrule
 \end{tabular}
-\caption{Legitimate-client performance across the three required states
-(cameras cam\_a, cam\_b, cam\_c).}
+\caption{Legitimate cameras (cam\_a/b/c) across the three required states.
+Zero legitimate requests were rejected in any state.}
 \end{table}
 
-With the limiter on, the attacker's requests are rejected at the door and
-the legitimate cameras return to near their baseline latency, while
-\texttt{<<n>>} attacker requests were rejected with 429.
+With mitigation on, 8133 attacker requests were rejected and legitimate
+throughput recovered from 11 back to 16 completed requests, while no
+legitimate request was ever rejected. Recovery is partial rather than full
+because rejection, although cheap, is not free: the fog still accepts the
+connection, runs the rate check and writes a log line for each of the
+8000+ attacker requests, and on a CPU-limited node (task~1.4) that residual
+load still competes with legitimate traffic. A heavier limit (for example
+dropping the connection earlier, or blocking the source for a cooldown
+period) would reduce this residual cost.
 
 \subsection*{5.3 Botnet and identity rotation}
 
-\paragraph{Botnet.} Three flooding cameras in zone~A
-(\texttt{cam\_dos}, \texttt{cam\_dos2}, \texttt{cam\_dos3}) attack
-\texttt{fog\_a} at once. Because the limiter keys on source IP and each
-container has its own address, each attacker is limited independently and
-the mitigation still holds: legitimate latency stayed at
-\texttt{<<botnet mean>>}~ms.
+\paragraph{Botnet.} Three flooding cameras in zone~A attack \texttt{fog\_a}
+at once. Because the limiter keys on source IP and each container has its
+own address, each attacker is limited independently; 1117 attacker requests
+were rejected and no legitimate request was rejected. The alert log shows
+the per-IP rule firing for each distinct attacker address
+(\texttt{10.10.1.129/130/132}).
 
 \paragraph{Rotating ID.} \texttt{cam\_rotate} floods while changing its
-\texttt{id} header on every request. This defeats any ID-based rule --
-including the collector's \texttt{rate\_per\_client\_id} alert, which no
-longer sees a repeated identity -- but the IP-based limiter and the
-\texttt{rate\_per\_client\_ip} alert still catch it, because the address
-does not change.
+\texttt{id} header on every request. This defeats any ID-based rule: the
+collector's \texttt{rate\_per\_client\_id} alert never sees a repeated
+identity. The IP-based limiter and the \texttt{rate\_per\_client\_ip} alert
+still catch it, because the address is constant:
 
-\paragraph{Was zone~B affected?} The two zones are separate internal
-networks with separate fog nodes, so zone~B cameras never contend with
-the zone~A flood at the fog. They do share the cloud node over
-\texttt{backbone\_net}. Zone~B legitimate latency went from
-\texttt{<<baseline zB>>}~ms to \texttt{<<attack zB>>}~ms during the
-attack, which indicates <<whether the shared cloud caused measurable
-cross-zone impact -- state the conclusion from the numbers>>.
+\begin{lstlisting}[caption={Rotating attacker: changing id, one address, caught by the per-IP rule (results/rotate\_alerts.jsonl)}]
+{"rule": "rate_per_client_ip", "detail": "21 requests in 10s",
+ "node": "fog_a", "client_id": "cam_rot_25", "client_ip": "10.10.1.131"}
+{"rule": "rate_per_client_ip", "detail": "22 requests in 10s",
+ "node": "fog_a", "client_id": "cam_rot_26", "client_ip": "10.10.1.131"}
+{"rule": "rate_per_client_ip", "detail": "23 requests in 10s",
+ "node": "fog_a", "client_id": "cam_rot_27", "client_ip": "10.10.1.131"}
+\end{lstlisting}
+
+\paragraph{Was zone~B affected?} Zone~B legitimate latency rose from
+367~ms at baseline to 1989~ms during the botnet phase and 1664~ms during
+the rotation phase. This is not through the network: the zones are separate
+\texttt{internal} networks with separate fog nodes, so the flood never
+reaches \texttt{fog\_b}. Two shared resources couple them instead. First,
+all containers run on one host, so a flood that keeps \texttt{fog\_a} busy
+starves the CPU that \texttt{fog\_b} also uses. Second, both fog nodes
+offload to the same cloud node over \texttt{backbone\_net}. The lesson is
+that network isolation is not resource isolation: separating the zones at
+the network layer does not protect zone~B from contention for shared CPU
+and the shared cloud node.
 
 \subsection*{5.4 ID spoofing}
 
-\texttt{cam\_spoof} joins \texttt{zone\_a\_net} and sends under the
-identity \texttt{cam\_a}, at a normal rate rather than flooding, so that
-detection cannot rely on volume. The collector's \texttt{id\_ip\_mismatch}
-rule fires the first time \texttt{cam\_a} is seen from a second address:
+\texttt{cam\_spoof} joins \texttt{zone\_a\_net} and sends under the identity
+\texttt{cam\_a} from its own address, at a normal rate rather than
+flooding, so detection cannot rely on volume. The collector's
+\texttt{id\_ip\_mismatch} rule fires the first time \texttt{cam\_a} is seen
+from a second address:
 
-\begin{lstlisting}[caption={Alert from \texttt{results/spoof\_alerts.jsonl}}]
-<<paste the real id_ip_mismatch line>>
+\begin{lstlisting}[caption={Spoof detected (results/spoof\_alerts.jsonl)}]
+{"ts": "2026-11-11T21:44:44.043172+00:00", "type": "alert",
+ "rule": "id_ip_mismatch",
+ "detail": "client_id seen from ['10.10.1.129', '10.10.1.131']",
+ "node": "fog_a", "client_id": "cam_a", "client_ip": "10.10.1.131"}
 \end{lstlisting}
 
-The spoofed camera is detected even though its request rate stays within
-normal limits, because the rule compares identity against source address
-rather than counting requests.
+The real \texttt{cam\_a} is at \texttt{10.10.1.129} and the spoofing
+container at \texttt{10.10.1.131}; the system reports the same identity
+appearing from two addresses. Detection works even though the spoofing
+camera stays within the normal request rate, because the rule compares
+identity against source address rather than counting requests.
